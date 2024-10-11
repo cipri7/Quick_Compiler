@@ -1,6 +1,6 @@
 #pragma once
 
-enum{
+enum Codes{
 	ID
 	// keywords
 	,TYPE_INT, TYPE_REAL, TYPE_STR,
@@ -15,7 +15,6 @@ enum{
 	LESS, GREATER, GREATERQ,NOTEQ,
 	//logic operators
 	AND, OR, NOT,  
-
 	//symbols
 	LPAR, RPAR,
 	SPACE, COMMENT,
@@ -23,6 +22,29 @@ enum{
 	//constants
 	INT, REAL, STR
 	};
+
+// 	extern const char* Codes_String[] = {
+// 		"ID"
+// 		// keywords
+// 		,"TYPE_INT", "TYPE_REAL", "TYPE_STR",
+// 		"VAR", "FUNCTION",
+// 		"IF", "ELSE", "WHILE",
+// 		"END", "RETURN",
+// 		// delimiters
+// 		"COMMA","FINISH", "COLON", "SEMICOLON",
+// 		// operators
+// 		"ASSIGN","EQUAL",
+// 		"ADD", "SUB", "MUL", "DIV",
+// 		"LESS", "GREATER", "GREATERQ","NOTEQ",
+// 		//logic operators
+// 		"AND", "OR", "NOT",  
+// 		//symbols
+// 		"LPAR", "RPAR",
+// 		"SPACE", "COMMENT",
+
+// 		//constants
+// 		"INT", "REAL", "STR"
+// };
 
 
 #define MAX_STR		127
