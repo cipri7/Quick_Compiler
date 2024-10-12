@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include <ctype.h>
 #include <string.h>
 
@@ -46,6 +47,23 @@ Token *addTk(int code){
 
 	const char* getCodeName(enum Codes cod) {
     return Codes_String[cod];  // Return the corresponding string
+}
+
+// Function to check if a string is a valid integer
+int isInteger(const char* pch) {
+	int number = *pch;
+    printf("number1 %d", number);
+    // Check if the rest of the characters are digits
+    while (*pch) {
+		pch++;
+        if (isdigit(*pch)) {
+            // If the character is a digit, add it to the current number
+            number = number * 10 + (*pch - '0');  // Build multi-digit number
+			printf("number2 %d", number);
+        }
+		else break;
+    } 
+    return number;  // All characters are digits
 }
 
 // copy in the dst buffer the string between [begin,end)
@@ -138,7 +156,7 @@ void tokenize(const char *pch){ // pch = Pointer Current Character
 
 			default:
 
-			// TOTO: 
+			// TODO: 
 				if(isalpha(*pch)||*pch=='_'){
 					for(start=pch++;isalnum(*pch)||*pch=='_';pch++){}
 					char *text=copyn(buf,start,pch);
@@ -153,14 +171,19 @@ void tokenize(const char *pch){ // pch = Pointer Current Character
 					else if(strcmp(text,"function")==0)addTk(FUNCTION);
 					else if(strcmp(text,"var")==0)addTk(VAR);
 					else{
-						tk=addTk(ID);
-						strcpy(tk->text,text);
+						tk = addTk(ID);
+						strcpy(tk->Constante.text,text);
 						}
 					}
-					// else if (isdigit(*pch)){
-					// 	tk=addTk(INT);
-					// 	tk->i=*pch;
-					// }
+					else if (isdigit(*pch)){
+						for(start=pch++;isdigit(*pch);pch++){}
+						char *text=copyn(buf,start,pch);
+						int num = atoi(text);
+						// int num = isInteger(pch);
+						tk = addTk(INT);
+						tk->Constante.i=num;
+					}
+					
 				else err("invalid char: %c (%d)",*pch,*pch);
 			}
 		}
@@ -170,8 +193,14 @@ void showTokens(){
 	for(int i=0;i<nTokens;i++){
 		Token *tk=&tokens[i];
 		// TODO: Show code Value
-		//printf("%d\n",tk->code);
 		printf("%d %s",tk->line,getCodeName(tk->code));
-		printf(":%s\n",tk->text);
+
+		if(strcmp(getCodeName(tk->code), "ID")==0)
+			printf(":%s",tk->Constante.text);
+
+		else if (strcmp(getCodeName(tk->code), "INT")==0)
+			printf(":%d",tk->Constante.i);
+
+		printf("\n");
 		}
 	}

@@ -23,28 +23,6 @@ enum Codes{
 	INT, REAL, STR
 	};
 
-// 	extern const char* Codes_String[] = {
-// 		"ID"
-// 		// keywords
-// 		,"TYPE_INT", "TYPE_REAL", "TYPE_STR",
-// 		"VAR", "FUNCTION",
-// 		"IF", "ELSE", "WHILE",
-// 		"END", "RETURN",
-// 		// delimiters
-// 		"COMMA","FINISH", "COLON", "SEMICOLON",
-// 		// operators
-// 		"ASSIGN","EQUAL",
-// 		"ADD", "SUB", "MUL", "DIV",
-// 		"LESS", "GREATER", "GREATERQ","NOTEQ",
-// 		//logic operators
-// 		"AND", "OR", "NOT",  
-// 		//symbols
-// 		"LPAR", "RPAR",
-// 		"SPACE", "COMMENT",
-
-// 		//constants
-// 		"INT", "REAL", "STR"
-// };
 
 
 #define MAX_STR		127
@@ -52,11 +30,11 @@ enum Codes{
 typedef struct{
 	int code;		// ID, TYPE_INT, ...
 	int line;		// the line from the input file
-	union{
+	union Constante{
 		char text[MAX_STR+1];		// the chars for ID, STR
 		int i;		// the value for INT
 		double r;		// the value for REAL
-		};
+		} Constante;
 	}Token;
 
 #define MAX_TOKENS		4096
