@@ -148,11 +148,18 @@ void tokenize(const char *pch){ // pch = Pointer Current Character
 					pch++;
 					}
 				break;
+				case '#':
+					for(start=pch++;isalnum(*pch)||*pch=='_' || *pch == ' ';pch++){}
+				break;
 
-				// case '#':
-				// if(isalnum(pch[1]))
-				// 	for(start=pch++;isalnum(*pch)||*pch=='_';pch++){}
-				// break;
+				case '\"':
+				pch++;
+					for(start=pch++;((isalnum(*pch) || ispunct(*pch)) && *pch != '\"');pch++){}
+					pch++;
+					char *text = copyn(buf,start,pch-1);
+					tk = addTk(STR);
+					strcpy(tk->Constante.text, text);
+				break;
 
 			default:
 
@@ -170,19 +177,36 @@ void tokenize(const char *pch){ // pch = Pointer Current Character
 					else if(strcmp(text,"while")==0)addTk(WHILE);
 					else if(strcmp(text,"function")==0)addTk(FUNCTION);
 					else if(strcmp(text,"var")==0)addTk(VAR);
+					else if(strcmp(text,"return")==0)addTk(RETURN);
+					else if(strcmp(text,"end")==0)addTk(END);
 					else{
 						tk = addTk(ID);
 						strcpy(tk->Constante.text,text);
 						}
 					}
 					else if (isdigit(*pch)){
-						for(start=pch++;isdigit(*pch);pch++){}
+						for(start=pch++;isdigit(*pch) && *pch != '.';pch++){}
+						
 						char *text=copyn(buf,start,pch);
 						int num = atoi(text);
-						// int num = isInteger(pch);
+						if(*pch == '.'){
+							for(start=pch++;isdigit(*pch);pch++){}
+							char *text=copyn(buf,start,pch);
+							double real = atof(text);
+							real += num;
+							tk = addTk(REAL);
+							tk->Constante.r=real;
+							break;
+						}
 						tk = addTk(INT);
 						tk->Constante.i=num;
+					
 					}
+					
+					// else if (*pch == "\""){
+					// 	for(start=pch++;isalnum(*pch);pch++){}
+					// 	char *text=copyn(buf,start,pch);
+					// }
 					
 				else err("invalid char: %c (%d)",*pch,*pch);
 			}
@@ -200,6 +224,13 @@ void showTokens(){
 
 		else if (strcmp(getCodeName(tk->code), "INT")==0)
 			printf(":%d",tk->Constante.i);
+
+		else if (strcmp(getCodeName(tk->code), "REAL")==0)
+			printf(":%f",tk->Constante.r);
+		
+		else if (strcmp(getCodeName(tk->code), "STR")==0)
+			printf(":%s",tk->Constante.text);
+		
 
 		printf("\n");
 		}

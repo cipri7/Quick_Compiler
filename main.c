@@ -5,7 +5,7 @@
 
 int main()
 {
-    char *buffer = loadFile("test/2.q");
+    char *buffer = loadFile("test/1.q");
     //puts(buffer);
     tokenize(buffer);
     showTokens();
