@@ -76,7 +76,7 @@ bool funcParams(){
 	if(funcParam()){
 		for(;;){
 			if(consume(COMMA)){
-				if(funcParam){}
+				if(funcParam()){}
 				else
 					break;
 			}
@@ -96,7 +96,11 @@ bool defFunc(){
 				if(consume(RPAR)){
 					if(consume(COLON)){
 						if(baseType()){
-							if(defVar()){}
+							for(;;){
+								if(defVar()){}
+								else
+									break;
+							}
 							if(block()){
 								if(consume(END)){
 									return true;
@@ -135,24 +139,230 @@ factor ::= INT
 | LPAR expr RPAR
 | ID ( LPAR ( expr ( COMMA expr )* )? RPAR )?
 */
-// bool factor(){
-// int start = iTk;
-// if(consume(ID)){
-// return true;
-// }
-// if(consume(LPAR)){
-// if(expr()){
-// if(consume(RPAR)){
-// return true;
-// }
-// }
-// iTk = start;
-// }
-// if(consume(NR)){
-// return true;
-// }
-// return false;
-// }
+bool factor(){
+	int start = iTk;
+	if (consume(INT)){
+		return true;
+	}
+	if (consume(REAL)){
+		return true;
+	}
+	if (consume(STR)){
+		return true;
+	}
+
+	if (consume(LPAR)){
+		if (expr()){
+			if (consume(RPAR)){
+				return true;
+			}
+		}
+	}
+
+	// ID ( LPAR ( expr ( COMMA expr )* )? RPAR )?
+	if (consume(ID))
+	{
+		if(consume(LPAR)){}
+			if(expr()){
+				for(;;){
+					if(consume(COMMA)){
+						if(expr()){}
+						else
+						break;
+					}
+					else
+						break;
+				}
+			}
+		if(consume(RPAR)){}
+		return true;
+	}
+	iTk = start;
+	return false;
+}
+
+
+//exprAdd ::= exprMul ( ( ADD | SUB ) exprMul )*
+bool exprAdd(){
+	int start = iTk;
+	if(exprMul()){
+		for(;;){
+			if(consume(ADD) || consume(SUB)){
+				if(exprMul()){
+					return true;
+				}
+				else
+					break;
+			}
+			else
+				break;
+		}
+	}
+
+
+	iTk = start;
+	return false;
+}
+
+//exprMul ::= exprPrefix ( ( MUL | DIV ) exprPrefix )*
+bool exprMul(){
+	int start = iTk;
+	if(exprPrefix()){
+		for(;;){
+			if(consume(MUL) || consume(DIV)){
+				if(exprPrefix()){
+					return true;
+				}
+				else
+					break;
+			}
+			else
+				break;
+		}
+	}
+
+	iTk = start;
+	return false;
+}
+
+//exprPrefix ::= ( SUB | NOT )? factor
+bool exprPrefix(){
+	int start = iTk;
+	if(consume(SUB) || consume(NOT)){}
+	if(factor()){
+		return true;
+	}
+
+	iTk = start;
+	return false;
+}
+
+//exprComp ::= exprAdd ( ( LESS | EQUAL ) exprAdd )?
+bool exprComp(){
+	int start = iTk;
+	if(exprAdd()){
+		if(consume(LESS) || consume(EQUAL)){}
+		if(exprAdd()){}
+		return true;
+	}
+
+	iTk = start;
+	return false;
+}
+
+
+//exprAssign ::= ( ID ASSIGN )? exprComp
+bool exprAssign(){
+	int start = iTk;
+	if(consume(ID)){}
+	if(consume(ASSIGN)){}
+	if(exprComp()){
+		return true;
+	}
+	iTk = start;
+	return false;
+}
+
+//exprLogic ::= exprAssign ( ( AND | OR ) exprAssign )*
+bool exprLogic(){
+	int start = iTk;
+		if(exprAssign()){
+			for(;;){
+				if(consume(AND) || consume(OR)){
+					if(exprAssign()){
+						return true;
+					}
+					else
+						break;
+
+				}
+			}
+		}
+		iTk = start;
+		return false;
+
+
+}
+
+//expr ::= exprLogic
+bool expr(){
+	int start = iTk;
+	if(exprLogic()){
+		return true;
+	}
+	iTk = start;
+	return false;
+	
+}
+
+
+/*
+instr ::= expr? SEMICOLON
+| IF LPAR expr RPAR block ( ELSE block )? END
+| RETURN expr SEMICOLON
+| WHILE LPAR expr RPAR block END
+*/
+bool instr(){
+	int start = iTk;
+	if(expr()){}
+	if(consume(SEMICOLON)){
+		return true;
+	}
+	else if(consume(IF)){
+		if(consume(LPAR)){
+			if(expr()){
+				if(consume(RPAR)){
+					if(block()){
+						if(consume(ELSE)){
+							if(block()){}
+						}
+						if(consume(END)){
+							return true;
+						}
+					}
+				}
+			}
+		}
+	}
+	else if(consume(RETURN)){
+		if(expr()){
+			if(consume(SEMICOLON)){
+				return true;
+			}
+		}
+	}
+	else if(consume(WHILE)){
+		if(consume(LPAR)){
+			if(expre()){
+				if(consume(RPAR)){
+					if(block()){
+						if(consume(END)){
+							return true;
+						}
+					}
+				}
+			}
+		}
+	}
+	iTk = start;
+	return false;
+}
+
+// block ::= instr+
+bool block(){
+	int start = iTk;
+	if(instr()){
+		return true;
+	}
+	for(;;){
+		if(instr()){}
+		else
+			break;
+	}
+
+	iTk = start;
+	return false;
+}
 
 // program ::= ( defVar | defFunc | block )* FINISH
 bool program(){
