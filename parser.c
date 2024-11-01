@@ -19,6 +19,25 @@ _Noreturn void tkerr(const char *fmt,...){
 	exit(EXIT_FAILURE);
 	}
 
+bool consume(int code);
+bool baseType();
+bool defVar();
+bool funcParam();
+bool funcParams();
+bool defFunc();
+bool factor();
+bool exprAdd();
+bool exprMul();
+bool exprPrefix();
+bool exprComp();
+bool exprAssign();
+bool exprLogic();
+bool expr();
+bool instr();
+bool block();
+bool program();
+
+
 bool consume(int code){
 	if(tokens[iTk].code==code){
 		consumed=&tokens[iTk++];
@@ -28,13 +47,17 @@ bool consume(int code){
 	}
 
 bool baseType(){
+	int start = iTk;
 	if(consume(TYPE_INT))
 		return true;
-	if(consume(TYPE_REAL))
+	else if(consume(TYPE_REAL))
 		return true;
-	if(consume(TYPE_STR))
+	else if(consume(TYPE_STR))
 		return true;
+	// necessary error?
+	else tkerr("invalid data type.");
 
+	iTk = start;
 	return false;
 }
 
@@ -48,9 +71,14 @@ bool defVar(){
 					if(consume(SEMICOLON)){
 						return true;				
 					}
+					else tkerr("missing ; after variable definition.");
 				}
+				else tkerr("invalid variable type.");
 			}
+			else tkerr("missing : after variable name.");
+
 		}
+		else tkerr("missing variable name.");
 
 	}
 	iTk = start;
@@ -64,24 +92,31 @@ bool funcParam(){
 		if(consume(COLON)){
 			if(baseType())
 				return true;
+			else tkerr("invalid parameter type.");
 		}
+		else tkerr("missing : after parameter.");
 	}
 	iTk = start;
 	return false;
 }
 
 // funcParams ::= funcParam ( COMMA funcParam )*
+//TODO: eroare aici
 bool funcParams(){
 	int start = iTk;
 	if(funcParam()){
 		for(;;){
 			if(consume(COMMA)){
-				if(funcParam()){}
+				if(funcParam()){
+					break;
+				}
 				else
 					break;
 			}
+			else tkerr("missing , after multiple function parameters.");
 		}
 	}
+	else tkerr("invalid function parameters.");
 	iTk = start;
 	return false;
 }
@@ -93,6 +128,7 @@ bool defFunc(){
 		if(consume(ID)){
 			if(consume(LPAR)){
 				if(funcParams()){}
+				printf("%d",tokens[iTk].code);
 				if(consume(RPAR)){
 					if(consume(COLON)){
 						if(baseType()){
@@ -106,31 +142,37 @@ bool defFunc(){
 									return true;
 								}
 							}
+							//else tkerr("error in  ");
 						}
+						else tkerr("invalid data type in function declaration.");
 					}
+					else tkerr("missing : in function declaration.");
 				}
+				else tkerr("missing ) after function parameters.");
 			}
+			else tkerr("missing ( before function parameters.");
 		}
+		else tkerr("missing function name.");
 	}
 	iTk = start;
 	return false;
 }
 
-bool instrWhile(){
-	int start = iTk;
-	if (consume(WHILE)){
-		if (consume(LPAR)){
-			if (expr()){
-				if (consume(RPAR)){
-					if (instr())
-						return true;
-				}
-			}
-		}
-	}
-	iTk = start;
-	return false;
-}
+// bool instrWhile(){
+// 	int start = iTk;
+// 	if (consume(WHILE)){
+// 		if (consume(LPAR)){
+// 			if (expr()){
+// 				if (consume(RPAR)){
+// 					if (instr())
+// 						return true;
+// 				}
+// 			}
+// 		}
+// 	}
+// 	iTk = start;
+// 	return false;
+// }
 
 /*
 factor ::= INT
@@ -144,20 +186,22 @@ bool factor(){
 	if (consume(INT)){
 		return true;
 	}
-	if (consume(REAL)){
+	else if (consume(REAL)){
 		return true;
 	}
-	if (consume(STR)){
+	else if (consume(STR)){
 		return true;
 	}
 
-	if (consume(LPAR)){
+	else if (consume(LPAR)){
 		if (expr()){
 			if (consume(RPAR)){
 				return true;
 			}
+			else tkerr("missing ) after expression declaration.");
 		}
 	}
+	else tkerr("missing ( before expression declaration.");
 
 	// ID ( LPAR ( expr ( COMMA expr )* )? RPAR )?
 	if (consume(ID))
@@ -320,6 +364,7 @@ bool instr(){
 							return true;
 						}
 					}
+					else tkerr("missing expression inside IF.");
 				}
 			}
 		}
@@ -333,7 +378,7 @@ bool instr(){
 	}
 	else if(consume(WHILE)){
 		if(consume(LPAR)){
-			if(expre()){
+			if(expr()){
 				if(consume(RPAR)){
 					if(block()){
 						if(consume(END)){
@@ -354,6 +399,8 @@ bool block(){
 	if(instr()){
 		return true;
 	}
+	else tkerr("error ");
+
 	for(;;){
 		if(instr()){}
 		else

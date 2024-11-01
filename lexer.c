@@ -154,7 +154,7 @@ void tokenize(const char *pch){ // pch = Pointer Current Character
 
 				case '\"':
 				pch++;
-					for(start=pch++;((isalnum(*pch) || ispunct(*pch)) && *pch != '\"');pch++){}
+					for(start=pch++;(*pch!='"');pch++){}
 					pch++;
 					char *text = copyn(buf,start,pch-1);
 					tk = addTk(STR);
