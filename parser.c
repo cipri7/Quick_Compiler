@@ -38,39 +38,35 @@ bool block();
 bool program();
 const char* getCodeName(enum Codes cod);
 
-// bool consume(int code){
-// 	if(tokens[iTk].code==code){
-// 		consumed=&tokens[iTk++];
-// 		return true;
-// 		}
-// 	return false;
-// 	}
-
-
 bool consume(int code){
-      printf("consume(%s)",getCodeName(code));
-      if(tokens[iTk].code==code){
-            consumed=&tokens[iTk++];
-            printf(" => consumed\n");
-            return true;
-            }
-      printf(" => found %s\n",getCodeName(tokens[iTk].code));
-      return false;
-      }
+	if(tokens[iTk].code==code){
+		consumed=&tokens[iTk++];
+		return true;
+		}
+	return false;
+	}
+
+
+// bool consume(int code){
+//       printf("consume(%s)",getCodeName(code));
+//       if(tokens[iTk].code==code){
+//             consumed=&tokens[iTk++];
+//             printf(" => consumed\n");
+//             return true;
+//             }
+//       printf(" => found %s\n",getCodeName(tokens[iTk].code));
+//       return false;
+//       }
 
 
 bool baseType(){
-	int start = iTk;
 	if(consume(TYPE_INT))
 		return true;
 	else if(consume(TYPE_REAL))
 		return true;
 	else if(consume(TYPE_STR))
 		return true;
-	// necessary error?
 	else tkerr("invalid data type.");
-
-	iTk = start;
 	return false;
 }
 
@@ -114,25 +110,17 @@ bool funcParam(){
 }
 
 // funcParams ::= funcParam ( COMMA funcParam )*
-//TODO: eroare aici
 bool funcParams(){
 	int start = iTk;
 	if(funcParam() == true){
-		//printf("funcParam OK\n");
-		for(;;){
-			if(consume(COMMA)){
-				if(funcParam() == true){
-					//printf("funcParam OK\n");
-					return true;
-					break;
-				}
-				else
-					tkerr("missing additional function argument.");
+		while (consume(COMMA)) {
+			if (!funcParam()) {
+				tkerr("invalid function parameter after ,");
+				return false;
 			}
-			else tkerr("missing , after multiple function parameters.");
 		}
+		return true;
 	}
-	else tkerr("invalid function parameters.");
 	iTk = start;
 	return false;
 }
@@ -144,21 +132,16 @@ bool defFunc(){
 		if(consume(ID)){
 			if(consume(LPAR)){
 				if(funcParams()){}
-				//printf("%d",tokens[iTk].code);
 				if(consume(RPAR)){
 					if(consume(COLON)){
 						if(baseType()){
-							for(;;){
-								if(defVar()){}
-								else
-									break;
-							}
+							while (defVar()) {}
 							if(block()){
 								if(consume(END)){
 									return true;
 								}
 							}
-							//else tkerr("error in  ");
+							else tkerr("function not entirely defined.");
 						}
 						else tkerr("invalid data type in function declaration.");
 					}
@@ -174,21 +157,6 @@ bool defFunc(){
 	return false;
 }
 
-// bool instrWhile(){
-// 	int start = iTk;
-// 	if (consume(WHILE)){
-// 		if (consume(LPAR)){
-// 			if (expr()){
-// 				if (consume(RPAR)){
-// 					if (instr())
-// 						return true;
-// 				}
-// 			}
-// 		}
-// 	}
-// 	iTk = start;
-// 	return false;
-// }
 
 /*
 factor ::= INT
@@ -209,7 +177,7 @@ bool factor(){
 		return true;
 	}
 
-	if (consume(LPAR)){
+	else if (consume(LPAR)){
 		if (expr()){
 			if (consume(RPAR)){
 				return true;
@@ -218,25 +186,23 @@ bool factor(){
 		}
 		else tkerr("missing expression inside parenthesis.");
 	}
-	//else tkerr("missing ( before expression declaration.");//error
 
 	// ID ( LPAR ( expr ( COMMA expr )* )? RPAR )?
-	if (consume(ID))
+	else if (consume(ID))
 	{
-		//printf("%d",tokens[iTk].code);
-		if(consume(LPAR)){}
+		if(consume(LPAR)){
 			if(expr()){
-				for(;;){
-					if(consume(COMMA)){
-						if(expr()){}
-						else
-						break;
+				while (consume(COMMA)) {
+					if (!expr()) {
+						tkerr("invalid expression after , in function declaration.");
 					}
-					else
-						break;
 				}
 			}
-		if(consume(RPAR)){}
+		if(consume(RPAR)){
+			return true;
+		}
+		else tkerr("missing ) after function declaration.");
+		}
 		return true;
 	}
 	iTk = start;
@@ -249,20 +215,13 @@ bool exprAdd(){
 	int start = iTk;
 	if(exprMul()){
 		//printf("expression MUL NOT OK.\n");
-		for(;;){
-			if(consume(ADD) || consume(SUB)){
-				if(exprMul()){
-					return true;
-				}
-				else
-					break;
+		while (consume(ADD) || consume(SUB)) {
+			if (!exprMul()) {
+				tkerr("invalid expression after add/sub operator.");
 			}
-			else
-				break;
 		}
+		return true;
 	}
-
-
 	iTk = start;
 	return false;
 }
@@ -272,19 +231,13 @@ bool exprMul(){
 	int start = iTk;
 	if(exprPrefix()){
 		//printf("expression Prefix NOT OK.\n");
-		for(;;){
-			if(consume(MUL) || consume(DIV)){
-				if(exprPrefix()){
-					return true;
-				}
-				else
-					break;
+		while (consume(MUL) || consume(DIV)) {
+			if (!exprPrefix()) {
+				tkerr("invalid expression after multiplication/division operator.");
 			}
-			else
-				break;
 		}
+		return true;
 	}
-
 	iTk = start;
 	return false;
 }
@@ -292,32 +245,27 @@ bool exprMul(){
 //exprPrefix ::= ( SUB | NOT )? factor
 bool exprPrefix(){
 	int start = iTk;
-	if(consume(SUB)){}
-	if(consume(NOT)){}
-	if(factor()){
-		//printf("FACTOR NOT OK.\n");
-		return true;
+	if(consume(SUB) || consume(NOT)){
+		if(factor()){
+			return true;
+		}
 	}
 
 	iTk = start;
-	return false;
+	return factor();
 }
 
 //exprComp ::= exprAdd ( ( LESS | EQUAL ) exprAdd )?
 bool exprComp(){
 	int start = iTk;
 	if(exprAdd()){
-		printf("expression ADD OK .\n");
-		if(consume(LESS) || consume(EQUAL)){
-			if(exprAdd()){}
-			return true;
+		while (consume(LESS) || consume(EQUAL)) {
+			if (!exprAdd()) {
+				tkerr("invalid expression after equality operators.");
+			}
 		}
-
-
+		return true;
 	}
-	else 
-		printf("expression ADD NOT OK .\n");
-
 	iTk = start;
 	return false;
 }
@@ -327,46 +275,39 @@ bool exprComp(){
 bool exprAssign(){
 	int start = iTk;
 	if(consume(ID)){
-		printf("expression Assign OK ID.\n");
-	}
-	if(consume(ASSIGN)){
-		printf("expression Assign OK ASSIGN.\n");
-	}
-	if(exprComp()){
-		printf("expression COMP  OK.\n");
-		return true;
+		if (consume(ASSIGN)) {
+			if (exprComp()) {
+				return true;
+			}
+			else {
+				tkerr("invalid assignment expression.");
+				return false;
+			}
+		}
 	}
 	iTk = start;
-	return false;
+	return exprComp();
 }
 
 //exprLogic ::= exprAssign ( ( AND | OR ) exprAssign )*
 bool exprLogic(){
 	int start = iTk;
 		if(exprAssign()){
-			//printf("exprAssign NOT OK!!\n");
-			for(;;){
-				if(consume(AND) || consume(OR)){
-					if(exprAssign()){
-						return true;
-					}
-					else
-						break;
-
-				}
+			while (consume(AND) || consume(OR)) {
+			if (!exprAssign()) {
+				tkerr("invalid statement after logic operator.");
 			}
 		}
-		iTk = start;
-		return false;
-
-
+		return true;
+	}
+	iTk = start;
+	return false;
 }
 
 //expr ::= exprLogic
 bool expr(){
 	int start = iTk;
 	if(exprLogic()){
-		//printf("expression Logic error.\n");
 		return true;
 	}
 	iTk = start;
@@ -382,58 +323,70 @@ instr ::= expr? SEMICOLON
 | WHILE LPAR expr RPAR block END
 */
 bool instr(){
-	int start = iTk;
-	if(expr()){
-		//printf("expression error.\n");
-
+		int start = iTk;
+	if (expr()) {
+		if (consume(SEMICOLON)) {
+			return true;
+		}
+		else tkerr("missing ; after expression");
 	}
-	if(consume(SEMICOLON)){
+
+	if (consume(SEMICOLON)) {
 		return true;
 	}
-	//IF LPAR expr RPAR block ( ELSE block )? END
-	else if(consume(IF)){
-		printf("IF GASIT\n");
-		if(consume(LPAR)){
-			printf("LPAR GASIT\n");
-			if(expr()){
-				printf("expr GASIT\n");
-				if(consume(RPAR)){
-					printf("RPAR GASIT\n");
-					if(block()){
-						printf("BLOCK OK\n");
-						if(consume(ELSE)){}
-							//printf("ELSE GASIT\n");
-							if(block()){}
-						
-						if(consume(END)){
+
+	if (consume(IF)) {
+		if (consume(LPAR)) {
+			if (expr()) {
+				if (consume(RPAR)) {
+					if (block()) {
+						if (consume(ELSE)) {
+							if (block()) { }
+							else tkerr("invalid statements after else.");
+						}
+						if (consume(END)) {
 							return true;
 						}
+						else tkerr("missing end after function declaration.");
 					}
-					else tkerr("missing expression inside IF.");
+					else tkerr("invalid declaration after if statement.");
 				}
+				else tkerr("missing ) after if declaration.");
 			}
+			else tkerr("invalid if condition.");
 		}
+		else tkerr("missing ( after if declaration.");
 	}
-	else if(consume(RETURN)){
-		if(expr()){
-			if(consume(SEMICOLON)){
-				return true;
-			}
+
+	if (consume(RETURN)) {
+		if (!expr()) {
+			tkerr("invalid expression after return.");
 		}
+		if (consume(SEMICOLON)) {
+			return true;
+		}
+		else tkerr("missing ; after return statement.");
 	}
-	else if(consume(WHILE)){
-		if(consume(LPAR)){
-			if(expr()){
-				if(consume(RPAR)){
-					if(block()){
-						if(consume(END)){
+
+	if (consume(WHILE)) {
+		if (consume(LPAR)) {
+			if (expr()) {
+				if (consume(RPAR)) {
+					if (block()) {
+						if (consume(END)) {
 							return true;
 						}
+						else tkerr("while is never closed.");
 					}
+					else tkerr("invalid while statemens.");
 				}
+				else tkerr("missing ) after while statement.");
 			}
+			else tkerr("invalid condition in while.");
 		}
+		else tkerr("missing ( after while statement.");
 	}
+
 	iTk = start;
 	return false;
 }
@@ -443,11 +396,8 @@ bool block(){
 	int start = iTk;
 	if(instr()){
 		while(instr()){}
-		printf("INSTR OK\n");
 		return true;
-	}
-	else printf("INSTR  NOT OK\n");
-	
+	}	
 	iTk = start;
 	return false;
 }
@@ -462,7 +412,7 @@ bool program(){
 		}
 	if(consume(FINISH)){
 		return true;
-		}else tkerr("syntax error");
+		}else tkerr("syntax error.");
 	return false;
 	}
 
