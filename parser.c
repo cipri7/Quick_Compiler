@@ -36,15 +36,28 @@ bool expr();
 bool instr();
 bool block();
 bool program();
+const char* getCodeName(enum Codes cod);
+
+// bool consume(int code){
+// 	if(tokens[iTk].code==code){
+// 		consumed=&tokens[iTk++];
+// 		return true;
+// 		}
+// 	return false;
+// 	}
 
 
 bool consume(int code){
-	if(tokens[iTk].code==code){
-		consumed=&tokens[iTk++];
-		return true;
-		}
-	return false;
-	}
+      printf("consume(%s)",getCodeName(code));
+      if(tokens[iTk].code==code){
+            consumed=&tokens[iTk++];
+            printf(" => consumed\n");
+            return true;
+            }
+      printf(" => found %s\n",getCodeName(tokens[iTk].code));
+      return false;
+      }
+
 
 bool baseType(){
 	int start = iTk;
@@ -104,14 +117,17 @@ bool funcParam(){
 //TODO: eroare aici
 bool funcParams(){
 	int start = iTk;
-	if(funcParam()){
+	if(funcParam() == true){
+		//printf("funcParam OK\n");
 		for(;;){
 			if(consume(COMMA)){
-				if(funcParam()){
+				if(funcParam() == true){
+					//printf("funcParam OK\n");
+					return true;
 					break;
 				}
 				else
-					break;
+					tkerr("missing additional function argument.");
 			}
 			else tkerr("missing , after multiple function parameters.");
 		}
@@ -128,7 +144,7 @@ bool defFunc(){
 		if(consume(ID)){
 			if(consume(LPAR)){
 				if(funcParams()){}
-				printf("%d",tokens[iTk].code);
+				//printf("%d",tokens[iTk].code);
 				if(consume(RPAR)){
 					if(consume(COLON)){
 						if(baseType()){
@@ -186,26 +202,28 @@ bool factor(){
 	if (consume(INT)){
 		return true;
 	}
-	else if (consume(REAL)){
+	if (consume(REAL)){
 		return true;
 	}
-	else if (consume(STR)){
+	if (consume(STR)){
 		return true;
 	}
 
-	else if (consume(LPAR)){
+	if (consume(LPAR)){
 		if (expr()){
 			if (consume(RPAR)){
 				return true;
 			}
 			else tkerr("missing ) after expression declaration.");
 		}
+		else tkerr("missing expression inside parenthesis.");
 	}
-	else tkerr("missing ( before expression declaration.");
+	//else tkerr("missing ( before expression declaration.");//error
 
 	// ID ( LPAR ( expr ( COMMA expr )* )? RPAR )?
 	if (consume(ID))
 	{
+		//printf("%d",tokens[iTk].code);
 		if(consume(LPAR)){}
 			if(expr()){
 				for(;;){
@@ -230,6 +248,7 @@ bool factor(){
 bool exprAdd(){
 	int start = iTk;
 	if(exprMul()){
+		//printf("expression MUL NOT OK.\n");
 		for(;;){
 			if(consume(ADD) || consume(SUB)){
 				if(exprMul()){
@@ -252,6 +271,7 @@ bool exprAdd(){
 bool exprMul(){
 	int start = iTk;
 	if(exprPrefix()){
+		//printf("expression Prefix NOT OK.\n");
 		for(;;){
 			if(consume(MUL) || consume(DIV)){
 				if(exprPrefix()){
@@ -272,8 +292,10 @@ bool exprMul(){
 //exprPrefix ::= ( SUB | NOT )? factor
 bool exprPrefix(){
 	int start = iTk;
-	if(consume(SUB) || consume(NOT)){}
+	if(consume(SUB)){}
+	if(consume(NOT)){}
 	if(factor()){
+		//printf("FACTOR NOT OK.\n");
 		return true;
 	}
 
@@ -285,10 +307,16 @@ bool exprPrefix(){
 bool exprComp(){
 	int start = iTk;
 	if(exprAdd()){
-		if(consume(LESS) || consume(EQUAL)){}
-		if(exprAdd()){}
-		return true;
+		printf("expression ADD OK .\n");
+		if(consume(LESS) || consume(EQUAL)){
+			if(exprAdd()){}
+			return true;
+		}
+
+
 	}
+	else 
+		printf("expression ADD NOT OK .\n");
 
 	iTk = start;
 	return false;
@@ -298,9 +326,14 @@ bool exprComp(){
 //exprAssign ::= ( ID ASSIGN )? exprComp
 bool exprAssign(){
 	int start = iTk;
-	if(consume(ID)){}
-	if(consume(ASSIGN)){}
+	if(consume(ID)){
+		printf("expression Assign OK ID.\n");
+	}
+	if(consume(ASSIGN)){
+		printf("expression Assign OK ASSIGN.\n");
+	}
 	if(exprComp()){
+		printf("expression COMP  OK.\n");
 		return true;
 	}
 	iTk = start;
@@ -311,6 +344,7 @@ bool exprAssign(){
 bool exprLogic(){
 	int start = iTk;
 		if(exprAssign()){
+			//printf("exprAssign NOT OK!!\n");
 			for(;;){
 				if(consume(AND) || consume(OR)){
 					if(exprAssign()){
@@ -332,6 +366,7 @@ bool exprLogic(){
 bool expr(){
 	int start = iTk;
 	if(exprLogic()){
+		//printf("expression Logic error.\n");
 		return true;
 	}
 	iTk = start;
@@ -348,18 +383,28 @@ instr ::= expr? SEMICOLON
 */
 bool instr(){
 	int start = iTk;
-	if(expr()){}
+	if(expr()){
+		//printf("expression error.\n");
+
+	}
 	if(consume(SEMICOLON)){
 		return true;
 	}
+	//IF LPAR expr RPAR block ( ELSE block )? END
 	else if(consume(IF)){
+		printf("IF GASIT\n");
 		if(consume(LPAR)){
+			printf("LPAR GASIT\n");
 			if(expr()){
+				printf("expr GASIT\n");
 				if(consume(RPAR)){
+					printf("RPAR GASIT\n");
 					if(block()){
-						if(consume(ELSE)){
+						printf("BLOCK OK\n");
+						if(consume(ELSE)){}
+							//printf("ELSE GASIT\n");
 							if(block()){}
-						}
+						
 						if(consume(END)){
 							return true;
 						}
@@ -397,16 +442,12 @@ bool instr(){
 bool block(){
 	int start = iTk;
 	if(instr()){
+		while(instr()){}
+		printf("INSTR OK\n");
 		return true;
 	}
-	else tkerr("error ");
-
-	for(;;){
-		if(instr()){}
-		else
-			break;
-	}
-
+	else printf("INSTR  NOT OK\n");
+	
 	iTk = start;
 	return false;
 }
