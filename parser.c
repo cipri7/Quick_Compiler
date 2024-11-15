@@ -4,6 +4,7 @@
 #include <stdarg.h>
 
 #include "lexer.h"
+#include "ad.h"
 
 int iTk;	// the iterator in tokens
 Token *consumed;	// the last consumed token
@@ -60,12 +61,18 @@ bool consume(int code){
 
 
 bool baseType(){
-	if(consume(TYPE_INT))
+	if(consume(TYPE_INT)){
+		ret.type=TYPE_INT;
 		return true;
-	else if(consume(TYPE_REAL))
+	}
+	else if(consume(TYPE_REAL)){
+		ret.type=TYPE_REAL;
 		return true;
-	else if(consume(TYPE_STR))
+	}
+	else if(consume(TYPE_STR)){
+		ret.type=TYPE_STR;
 		return true;
+	}
 	else tkerr("invalid data type.");
 	return false;
 }
@@ -75,8 +82,14 @@ bool defVar(){
 	int start = iTk;
 	if(consume(VAR)){
 		if(consume(ID)){
+			const char *name=consumed->Constante.text;
+			Symbol *s=searchInCurrentDomain(name);
+			if(s)tkerr("symbol redefinition: %s",name);
+			s=addSymbol(name,KIND_VAR);
+			s->local=crtFn!=NULL;
 			if(consume(COLON)){
 				if(baseType()) {
+					s->type=ret.type;
 					if(consume(SEMICOLON)){
 						return true;				
 					}
@@ -98,9 +111,17 @@ bool defVar(){
 bool funcParam(){
 	int start = iTk;
 	if(consume(ID)){
+		const char *name=consumed->Constante.text;
+		Symbol *s=searchInCurrentDomain(name);
+		if(s)tkerr("symbol redefinition: %s",name);
+		s=addSymbol(name,KIND_ARG);
+		Symbol *sFnParam=addFnArg(crtFn,name);
 		if(consume(COLON)){
-			if(baseType())
+			if(baseType()){
+				s->type=ret.type;
+				sFnParam->type=ret.type;
 				return true;
+			}
 			else tkerr("invalid parameter type.");
 		}
 		else tkerr("missing : after parameter.");
@@ -130,16 +151,27 @@ bool defFunc(){
 	int start = iTk;
 	if(consume(FUNCTION)){
 		if(consume(ID)){
+			const char *name=consumed->Constante.text;
+			Symbol *s=searchInCurrentDomain(name);
+			if(s)tkerr("symbol redefinition: %s",name);
+			crtFn=addSymbol(name,KIND_FN);
+			crtFn->args=NULL;
+			addDomain();
+
 			if(consume(LPAR)){
 				if(funcParams()){}
 				if(consume(RPAR)){
 					if(consume(COLON)){
 						if(baseType()){
+							crtFn->type=ret.type;
 							while (defVar()) {}
 							if(block()){
 								if(consume(END)){
+									delDomain();
+									crtFn=NULL;
 									return true;
 								}
+								else tkerr("missing END after function.");
 							}
 							else tkerr("function not entirely defined.");
 						}
@@ -404,6 +436,7 @@ bool block(){
 
 // program ::= ( defVar | defFunc | block )* FINISH
 bool program(){
+	addDomain(); // creates the global domain
 	for(;;){
 		if(defVar()){}
 		else if(defFunc()){}
@@ -411,6 +444,7 @@ bool program(){
 		else break;
 		}
 	if(consume(FINISH)){
+		delDomain(); // deletes the global domain
 		return true;
 		}else tkerr("syntax error.");
 	return false;

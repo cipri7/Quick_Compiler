@@ -3,6 +3,7 @@
 #include "utils.h"
 #include "lexer.h"
 #include "parser.h"
+#include "ad.h"
 
 int main()
 {
