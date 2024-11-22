@@ -7,7 +7,6 @@ function max(x:int, y:int):int
         return x;
         end
     end
-
 var i:int;
 i=0;    # iterator
 while(i<10)
