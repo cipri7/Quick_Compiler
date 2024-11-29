@@ -5,6 +5,7 @@
 
 #include "lexer.h"
 #include "ad.h"
+#include "at.h"
 
 int iTk;	// the iterator in tokens
 Token *consumed;	// the last consumed token
@@ -200,15 +201,15 @@ factor ::= INT
 bool factor(){
 	int start = iTk;
 	if (consume(INT)){
-		//setRet(TYPE_INT,false);
+		setRet(TYPE_INT,false);
 		return true;
 	}
 	if (consume(REAL)){
-		//setRet(TYPE_REAL,false);
+		setRet(TYPE_REAL,false);
 		return true;
 	}
 	if (consume(STR)){
-		//setRet(TYPE_STR,false);
+		setRet(TYPE_STR,false);
 		return true;
 	}
 
@@ -225,43 +226,40 @@ bool factor(){
 	// ID ( LPAR ( expr ( COMMA expr )* )? RPAR )?
 	else if (consume(ID))
 	{
-		// Symbol *s=searchSymbol(consumed->Constante.text);
-		// if(!s)tkerr("undefined symbol: %s",consumed->Constante.text);
+		Symbol *s=searchSymbol(consumed->Constante.text);
+		if(!s)tkerr("undefined symbol: %s",consumed->Constante.text);
 		if(consume(LPAR)){
-			// if(s->kind!=KIND_FN)tkerr("%s cannot be called, because it is not a function",s->name);
-			// Symbol *argDef=s->args;
+			if(s->kind!=KIND_FN)tkerr("%s cannot be called, because it is not a function",s->name);
+			Symbol *argDef=s->args;
 			if(expr()){
-				// if(!argDef)tkerr("the function %s is called with too many arguments",s->name);
-				// if(argDef->type!=ret.type)tkerr("the argument type at function %s call is different from the one given at its definition",s->name);
-				// argDef=argDef->next;
+				if(!argDef)tkerr("the function %s is called with too many arguments",s->name);
+				if(argDef->type!=ret.type)tkerr("the argument type at function %s call is different from the one given at its definition",s->name);
+				argDef=argDef->next;
 
 
-				// if(!argDef)tkerr("the function %s is called with too many arguments",s->name);
-				// if(argDef->type!=ret.type)tkerr("the argument type at function %s call is different
-				// from the one given at its definition",s->name);
-				// argDef=argDef->next;
 				while (consume(COMMA)) {
 					if (!expr()) {
 						tkerr("invalid expression after , in function declaration.");
-					// if(!argDef)tkerr("the function %s is called with too many arguments",s->name);
-					// if(argDef->type!=ret.type)tkerr("the argument type at function %s call is different
-					// from the one given at its definition",s->name);
-					// argDef=argDef->next;
+					if(!argDef)tkerr("the function %s is called with too many arguments",s->name);
+					if(argDef->type!=ret.type)tkerr("the argument type at function %s call is different from the one given at its definition",s->name);
+					argDef=argDef->next;
 					}
 				}
 			}
 		if(consume(RPAR)){
-			// if(argDef)tkerr("the function %s is called with too few arguments",s->name);
-			// setRet(s->type,false);
+			if(argDef)tkerr("the function %s is called with too few arguments",s->name);
+			setRet(s->type,false);
 			return true;
 		}
-		else tkerr("missing ) after function declaration.");
+		else {
+			if(s->kind==KIND_FN)tkerr("the function %s can only be called",s->name);
+			setRet(s->type,true);
 		}
-		// if(s->kind==KIND_FN)tkerr("the function %s can only be called",s->name);
-		// setRet(s->type,true);
+			return true;
+		}
 		
-		return true;
 	}
+	else tkerr("missing ) after function declaration.");
 	iTk = start;
 	return false;
 }
@@ -272,15 +270,15 @@ bool exprAdd(){
 	int start = iTk;
 	if(exprMul()){
 		//printf("expression MUL NOT OK.\n");
+		Ret leftType=ret;
+		if(leftType.type==TYPE_STR)tkerr("the operands of + or - cannot be of type str");
 		while (consume(ADD) || consume(SUB)) {
-			// Ret leftType=ret;
-			// if(leftType.type==TYPE_STR)tkerr("the operands of + or - cannot be of type str");
 			if (!exprMul()) {
 				tkerr("invalid expression after add/sub operator.");
 			}
 
-		// if(leftType.type!=ret.type)tkerr("different types for the operands of + or -");
-		// ret.lval=false;
+		if(leftType.type!=ret.type)tkerr("different types for the operands of + or -");
+		ret.lval=false;
 		}
 		return true;
 	}
@@ -293,14 +291,14 @@ bool exprMul(){
 	int start = iTk;
 	if(exprPrefix()){
 		//printf("expression Prefix NOT OK.\n");
+		Ret leftType=ret;
+		if(leftType.type==TYPE_STR)tkerr("the operands of * or / cannot be of type str");
 		while (consume(MUL) || consume(DIV)) {
-			// Ret leftType=ret;
-			// if(leftType.type==TYPE_STR)tkerr("the operands of * or / cannot be of type str");
 			if (!exprPrefix()) {
 				tkerr("invalid expression after multiplication/division operator.");
 			}
-		// if(leftType.type!=ret.type)tkerr("different types for the operands of * or /");
-		// ret.lval=false;
+		if(leftType.type!=ret.type)tkerr("different types for the operands of * or /");
+		ret.lval=false;
 		}
 		return true;
 	}
@@ -309,34 +307,60 @@ bool exprMul(){
 }
 
 //exprPrefix ::= ( SUB | NOT )? factor
+// modificat SUB factor | NOT factor | factor
 bool exprPrefix(){
+	// int start = iTk;
+	// if(consume(SUB) || consume(NOT)){
+	// 	if(factor()){
+	// 		// if(ret.type==TYPE_STR)tkerr("the expression of unary - must be of type int or real");
+	// 		// ret.lval=false;
+	// 		return true;
+	// 	}
+	// 	// if(ret.type==TYPE_STR)tkerr("the expression of ! must be of type int or real");
+	// 	// setRet(TYPE_INT,false);
+	// }
+
+	// iTk = start;
+	// return factor();
+
+
+// modificat SUB factor | NOT factor | factor
 	int start = iTk;
-	if(consume(SUB) || consume(NOT)){
+	if (consume(SUB)){
 		if(factor()){
-			// if(ret.type==TYPE_STR)tkerr("the expression of unary - must be of type int or real");
-			// ret.lval=false;
+			if(ret.type==TYPE_STR)tkerr("the expression of unary - must be of type int or real");
+			ret.lval=false;
 			return true;
 		}
-		// if(ret.type==TYPE_STR)tkerr("the expression of ! must be of type int or real");
-		// setRet(TYPE_INT,false);
+	}
+	else if (consume(NOT)){
+		if (factor()){
+			if(ret.type==TYPE_STR)tkerr("the expression of ! must be of type int or real");
+			setRet(TYPE_INT,false);
+			return true;
+		}
+	}
+	else if (factor()){
+		return true;
 	}
 
 	iTk = start;
 	return factor();
+
 }
 
 //exprComp ::= exprAdd ( ( LESS | EQUAL ) exprAdd )?
 bool exprComp(){
 	int start = iTk;
 	if(exprAdd()){
+		Ret leftType=ret;
 		while (consume(LESS) || consume(EQUAL)) {
-			//Ret leftType=ret;
 			if (!exprAdd()) {
 				tkerr("invalid expression after equality operators.");
 			}
 		}
-		// if(leftType.type!=ret.type)tkerr("different types for the operands of < or ==");
-		// setRet(TYPE_INT,false); // the result of comparation is int 0 or 1
+		if(leftType.type!=ret.type)tkerr("different types for the operands of < or ==");
+		setRet(TYPE_INT,false); // the result of comparation is int 0 or 1
 		return true;
 	}
 	iTk = start;
@@ -345,19 +369,22 @@ bool exprComp(){
 
 
 //exprAssign ::= ( ID ASSIGN )? exprComp
+// modificat: ID ASSIGN exprComp | exprComp
 bool exprAssign(){
 	int start = iTk;
 	if(consume(ID)){
 		const char *name=consumed->Constante.text;
 		if (consume(ASSIGN)) {
 			if (exprComp()) {
-				// Symbol *s=searchSymbol(name);
-				// if(!s)tkerr("undefined symbol: %s",name);
-				// if(s->kind==KIND_FN)tkerr("a function (%s) cannot be used as a destination for assignment ",name);
-				// if(s->type!=ret.type)tkerr("the source and destination for assignment must have the same type");
-				// ret.lval=false;
+				Symbol *s=searchSymbol(name);
+				if(!s)tkerr("undefined symbol: %s",name);
+				if(s->kind==KIND_FN)tkerr("a function (%s) cannot be used as a destination for assignment ",name);
+				if(s->type!=ret.type)tkerr("the source and destination for assignment must have the same type");
+				ret.lval=false;
 				return true;
 			}
+			else if (exprComp()){}
+			
 			else {
 				tkerr("invalid assignment expression.");
 				return false;
@@ -373,13 +400,13 @@ bool exprLogic(){
 	int start = iTk;
 		if(exprAssign()){
 			while (consume(AND) || consume(OR)) {
-				//Ret leftType=ret;
-				//if(leftType.type==TYPE_STR)tkerr("the left operand of && or || cannot be of type str");
+				Ret leftType=ret;
+				if(leftType.type==TYPE_STR)tkerr("the left operand of && or || cannot be of type str");
 			if (!exprAssign()) {
 				tkerr("invalid statement after logic operator.");
 			}
-			//if(ret.type==TYPE_STR)tkerr("the right operand of && or || cannot be of type str");
-			//setRet(TYPE_INT,false);
+			if(ret.type==TYPE_STR)tkerr("the right operand of && or || cannot be of type str");
+			setRet(TYPE_INT,false);
 		}
 		return true;
 	}
@@ -421,7 +448,7 @@ bool instr(){
 	if (consume(IF)) {
 		if (consume(LPAR)) {
 			if (expr()) {
-				//if(ret.type==TYPE_STR)tkerr("the if condition must have type int or real");
+				if(ret.type==TYPE_STR)tkerr("the if condition must have type int or real");
 				if (consume(RPAR)) {
 					if (block()) {
 						if (consume(ELSE)) {
@@ -446,8 +473,8 @@ bool instr(){
 		if (!expr()) {
 			tkerr("invalid expression after return.");
 		}
-		//if(!crtFn)tkerr("return can be used only in a function");
-		//if(ret.type!=crtFn->type)tkerr("the return type must be the same as the function return type");
+		if(!crtFn)tkerr("return can be used only in a function");
+		if(ret.type!=crtFn->type)tkerr("the return type must be the same as the function return type");
 		if (consume(SEMICOLON)) {
 			return true;
 		}
@@ -457,7 +484,7 @@ bool instr(){
 	if (consume(WHILE)) {
 		if (consume(LPAR)) {
 			if (expr()) {
-				//if(ret.type==TYPE_STR)tkerr("the while condition must have type int or real");
+				if(ret.type==TYPE_STR)tkerr("the while condition must have type int or real");
 				if (consume(RPAR)) {
 					if (block()) {
 						if (consume(END)) {
@@ -492,7 +519,7 @@ bool block(){
 // program ::= ( defVar | defFunc | block )* FINISH
 bool program(){
 	addDomain(); // creates the global domain
-	//addPredefinedFns(); // it will be inserted after the code for domain analysis
+	addPredefinedFns(); // it will be inserted after the code for domain analysis
 	for(;;){
 		if(defVar()){}
 		else if(defFunc()){}
