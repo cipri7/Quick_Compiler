@@ -34,7 +34,6 @@ bool consume(int code) {
 
 // baseType ::= TYPE_INT | TYPE_REAL | TYPE_STR
 bool baseType() {
-	//puts("#baseType");
 	if (consume(TYPE_INT)) {
 
 		ret.type = TYPE_INT;
@@ -68,7 +67,6 @@ bool expr();
 			| ID ( LPAR ( expr ( COMMA expr )* )? RPAR )?*/
 bool factor() {
 	int start = iTk;
-	//puts("#factor");
 	if (consume(INT)) {
 
 		setRet(TYPE_INT, false);
@@ -149,7 +147,6 @@ bool factor() {
 // exprPrefix ::= ( SUB | NOT )? factor
 bool exprPrefix() {
 	int start = iTk;
-	//puts("#esprPrefix");
 	if (consume(SUB)) {
 		if (factor()) {
 
@@ -175,7 +172,6 @@ bool exprPrefix() {
 // exprMul ::= exprPrefix ( ( MUL | DIV ) exprPrefix )*
 bool exprMul() {
 	int start = iTk;
-	//puts("#exprMul");
 	if (exprPrefix()) {
 		while (consume(MUL) || consume(DIV)) {
 
@@ -199,7 +195,6 @@ bool exprMul() {
 // exprAdd ::= exprMul ( ( ADD | SUB ) exprMul )*
 bool exprAdd() {
 	int start = iTk;
-	//puts("#exprAdd");
 	if (exprMul()) {
 		while (consume(ADD) || consume(SUB)) {
 
@@ -223,7 +218,6 @@ bool exprAdd() {
 // exprComp ::= exprAdd ( ( LESS | EQUAL ) exprAdd )?
 bool exprComp() {
 	int start = iTk;
-	//puts("#exprComp");
 	if (exprAdd()) {
 		while (consume(LESS) || consume(EQUAL)) {
 
@@ -246,7 +240,6 @@ bool exprComp() {
 // exprAssign ::= ( ID ASSIGN )? exprComp
 bool exprAssign() {
 	int start = iTk;
-	//puts("#exprAssign");
 	if (consume(ID)) {
 
 		const char* name = consumed->Constante.text;
@@ -275,7 +268,6 @@ bool exprAssign() {
 // exprLogic ::= exprAssign ( ( AND | OR ) exprAssign )*
 bool exprLogic() {
 	int start = iTk;
-	//puts("#exprLogic");
 	if (exprAssign()) {
 		while (consume(AND) || consume(OR)) {
 
@@ -299,7 +291,6 @@ bool exprLogic() {
 // expr ::= exprLogic
 bool expr() {
 	int start = iTk;
-	//puts("#expr");
 	if (exprLogic()) {
 		return true;
 	}
@@ -314,7 +305,6 @@ bool expr() {
 			| WHILE LPAR expr RPAR block END*/
 bool instr() {
 	int start = iTk;
-	//puts("#instr");
 	if (expr()) {
 		if (consume(SEMICOLON)) {
 			return true;
@@ -396,7 +386,6 @@ bool instr() {
 // block ::= instr+
 bool block() {
 	int start = iTk;
-	//puts("#block");
 	if (instr()) {
 		while (instr()) {}
 		return true;
@@ -408,7 +397,6 @@ bool block() {
 // funcParam ::= ID COLON baseType
 bool funcParam() {
 	int start = iTk;
-	//puts("#funcParam");
 	if (consume(ID)) {
 
 		const char* name = consumed->Constante.text;
@@ -436,7 +424,6 @@ bool funcParam() {
 // funcParams ::= funcParam ( COMMA funcParam )*
 bool funcParams() {
 	int start = iTk;
-	//puts("#funcParams");
 	if (funcParam()) {
 		while (consume(COMMA)) {
 			if (!funcParam()) {
@@ -453,7 +440,6 @@ bool funcParams() {
 // defFunc ::= FUNCTION ID LPAR funcParams? RPAR COLON baseType defVar* block END
 bool defFunc() {
 	int start = iTk;
-	//puts("#defFunc");
 	if (consume(FUNCTION)) {
 		if (consume(ID)) {
 
@@ -502,7 +488,6 @@ bool defFunc() {
 // defVar ::= VAR ID COLON baseType SEMICOLON
 bool defVar() {
 	int start = iTk;
-	//puts("#defVar");
 	if (consume(VAR)) {
 		if (consume(ID)) {
 
@@ -534,7 +519,6 @@ bool defVar() {
 
 // program ::= ( defVar | defFunc | block )* FINISH
 bool program() {
-	//puts("#program");
 	addDomain(); // creates the global domain
 
 	addPredefinedFns(); // it will be inserted after the code for domain analysis
