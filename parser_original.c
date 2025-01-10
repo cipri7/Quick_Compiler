@@ -5,7 +5,6 @@
 #include "lexer.h"
 #include "ad.h"
 #include "at.h"
-#include "gen.h"
 
 int iTk;	// the iterator in tokens
 Token* consumed;	// the last consumed token
@@ -71,28 +70,24 @@ bool factor() {
 	if (consume(INT)) {
 
 		setRet(TYPE_INT, false);
-		Text_write(crtCode,"%d",consumed->Constante.i);
 
 		return true;
 	}
 	else if (consume(REAL)) {
 
 		setRet(TYPE_REAL, false);
-		Text_write(crtCode,"%g",consumed->Constante.r);
+
 		return true;
 	}
 	else if (consume(STR)) {
 
 		setRet(TYPE_STR, false);
-		Text_write(crtCode,"\"%s\"",consumed->Constante.text);
 
 		return true;
 	}
 	else if (consume(LPAR)) {
-		Text_write(crtCode,"(");
 		if (expr()) {
 			if (consume(RPAR)) {
-				Text_write(crtCode,")");
 				return true;
 			}
 			else tkerr("missing ) after expression declaration.");
@@ -103,13 +98,12 @@ bool factor() {
 
 		Symbol* s = searchSymbol(consumed->Constante.text);
 		if (!s)tkerr("undefined symbol: %s", consumed->Constante.text);
-		Text_write(crtCode,"%s",s->name);
 
 		if (consume(LPAR)) {
 
 			if (s->kind != KIND_FN)tkerr("%s cannot be called, because it is not a function", s->name);
 			Symbol* argDef = s->args;
-			Text_write(crtCode,"(");
+
 			if (expr()) {
 
 				if (!argDef)tkerr("the function %s is called with too many arguments", s->name);
@@ -117,7 +111,6 @@ bool factor() {
 					argDef = argDef->next;
 
 				while (consume(COMMA)) {
-					Text_write(crtCode,",");
 					if (!expr()) {
 
 						tkerr("invalid expression after , in function declaration.");
@@ -133,7 +126,7 @@ bool factor() {
 
 				if (argDef)tkerr("the function %s is called with too few arguments", s->name);
 				setRet(s->type, false);
-				Text_write(crtCode,")");
+
 				return true;
 			}
 			else tkerr("missing ) after function declaration.");
@@ -155,7 +148,6 @@ bool factor() {
 bool exprPrefix() {
 	int start = iTk;
 	if (consume(SUB)) {
-		Text_write(crtCode,"-");
 		if (factor()) {
 
 			if (ret.type == TYPE_STR)tkerr("the expression of unary - must be of type int or real");
@@ -165,7 +157,6 @@ bool exprPrefix() {
 		}
 	}
 	else if (consume(NOT)) {
-		Text_write(crtCode,"!");
 		if (factor()) {
 
 			if (ret.type == TYPE_STR)tkerr("the expression of ! must be of type int or real");
@@ -183,8 +174,7 @@ bool exprMul() {
 	int start = iTk;
 	if (exprPrefix()) {
 		while (consume(MUL) || consume(DIV)) {
-			if(consumed->code == MUL) Text_write(crtCode,"*");
-			else if(consumed->code == DIV) Text_write(crtCode,"/");
+
 			Ret leftType = ret;
 			if (leftType.type == TYPE_STR)tkerr("the operands of * or / cannot be of type str");
 
@@ -207,8 +197,6 @@ bool exprAdd() {
 	int start = iTk;
 	if (exprMul()) {
 		while (consume(ADD) || consume(SUB)) {
-			if(consumed->code == ADD) Text_write(crtCode,"+");
-			else if(consumed->code == SUB) Text_write(crtCode,"-");
 
 			Ret leftType = ret;
 			if (leftType.type == TYPE_STR)tkerr("the operands of + or - cannot be of type str");
@@ -232,8 +220,7 @@ bool exprComp() {
 	int start = iTk;
 	if (exprAdd()) {
 		while (consume(LESS) || consume(EQUAL)) {
-			if(consumed->code == LESS) Text_write(crtCode,"<");
-			else if(consumed->code == EQUAL) Text_write(crtCode,"==");
+
 			Ret leftType = ret;
 
 			if (!exprAdd()) {
@@ -258,7 +245,6 @@ bool exprAssign() {
 		const char* name = consumed->Constante.text;
 
 		if (consume(ASSIGN)) {
-			Text_write(crtCode,"%s=",name);
 			if (exprComp()) {
 
 				Symbol* s = searchSymbol(name);
@@ -284,8 +270,6 @@ bool exprLogic() {
 	int start = iTk;
 	if (exprAssign()) {
 		while (consume(AND) || consume(OR)) {
-			if(consumed->code == AND) Text_write(crtCode,"&&");
-			else if (consumed->code == OR) Text_write(crtCode,"||");
 
 			Ret leftType = ret;
 			if (leftType.type == TYPE_STR)tkerr("the left operand of && or || cannot be of type str");
@@ -323,33 +307,25 @@ bool instr() {
 	int start = iTk;
 	if (expr()) {
 		if (consume(SEMICOLON)) {
-			Text_write(crtCode,";\n");
 			return true;
 		}
 		else tkerr("missing ; after expression");
 	}
 
-	// if (consume(SEMICOLON)) {
-	// 	return true;
-	// }
+	if (consume(SEMICOLON)) {
+		return true;
+	}
 
 	if (consume(IF)) {
 		if (consume(LPAR)) {
-			Text_write(crtCode,"if(");
 			if (expr()) {
 
 				if (ret.type == TYPE_STR)tkerr("the if condition must have type int or real");
 
 				if (consume(RPAR)) {
-					Text_write(crtCode,"){\n");
 					if (block()) {
-						Text_write(crtCode,"}\n");
 						if (consume(ELSE)) {
-							Text_write(crtCode,"else{\n");
-							if (block()) {
-								Text_write(crtCode,"}\n");
-							}
-							
+							if (block()) {}
 							else tkerr("invalid statements after else.");
 						}
 						if (consume(END)) {
@@ -367,7 +343,6 @@ bool instr() {
 	}
 
 	if (consume(RETURN)) {
-		Text_write(crtCode,"return ");
 		if (!expr()) {
 
 			if (!crtFn)tkerr("return can be used only in a function");
@@ -377,24 +352,20 @@ bool instr() {
 			tkerr("invalid expression after return.");
 		}
 		if (consume(SEMICOLON)) {
-			Text_write(crtCode,";\n");
 			return true;
 		}
 		else tkerr("missing ; after return statement.");
 	}
 
 	if (consume(WHILE)) {
-		Text_write(crtCode,"while(");
 		if (consume(LPAR)) {
 			if (expr()) {
 
 				if (ret.type == TYPE_STR)tkerr("the while condition must have type int or real");
 
 				if (consume(RPAR)) {
-					Text_write(crtCode,"){\n");
 					if (block()) {
 						if (consume(END)) {
-							Text_write(crtCode,"}\n");
 							return true;
 						}
 						else tkerr("while is never closed.");
@@ -440,8 +411,6 @@ bool funcParam() {
 				s->type = ret.type;
 				sFnParam->type = ret.type;
 
-				Text_write(&tFnHeader,"%s %s",cType(ret.type),name);
-
 				return true;
 			}
 			else tkerr("invalid parameter type.");
@@ -457,7 +426,6 @@ bool funcParams() {
 	int start = iTk;
 	if (funcParam()) {
 		while (consume(COMMA)) {
-			Text_write(&tFnHeader,",");
 			if (!funcParam()) {
 				tkerr("invalid function parameter after ,");
 				return false;
@@ -482,11 +450,6 @@ bool defFunc() {
 			crtFn->args = NULL;
 			addDomain();
 
-			crtCode=&tFunctions;
-			crtVar=&tFunctions;
-			Text_clear(&tFnHeader);
-			Text_write(&tFnHeader,"%s(",name);
-
 			if (consume(LPAR)) {
 				if (funcParams()) {}
 				if (consume(RPAR)) {
@@ -494,7 +457,6 @@ bool defFunc() {
 						if (baseType()) {
 
 							crtFn->type = ret.type;
-							Text_write(&tFunctions,"\n%s %s){\n",cType(ret.type),tFnHeader.buf);
 
 							while (defVar()) {}
 							if (block()) {
@@ -502,10 +464,6 @@ bool defFunc() {
 
 									delDomain();
 									crtFn = NULL;
-
-									Text_write(&tFunctions,"}\n");
-									crtCode=&tMain;
-									crtVar=&tBegin;
 
 									return true;
 								}
@@ -545,7 +503,6 @@ bool defVar() {
 					s->type = ret.type;
 
 					if (consume(SEMICOLON)) {
-						Text_write(crtVar,"%s %s;\n",cType(ret.type),name);
 						return true;
 					}
 					else tkerr("missing ; after variable definition.");
@@ -566,12 +523,6 @@ bool program() {
 
 	addPredefinedFns(); // it will be inserted after the code for domain analysis
 
-	// the code for code generation will be added after the code of the other modules
-	crtCode=&tMain;
-	crtVar=&tBegin;
-	Text_write(&tBegin,"#include \"quick.h\"\n\n");
-	Text_write(&tMain,"\nint main(){\n");
-
 	for (;;) {
 		if (defVar()) {}
 		else if (defFunc()) {}
@@ -581,25 +532,9 @@ bool program() {
 	if (consume(FINISH)) {
 
 		delDomain(); // deletes the global domain
-
-		Text_write(&tMain,"return 0;\n}\n");
-		FILE *fis=fopen("1.c","w");
-		if(!fis){
-		printf("cannot write to file 1.c\n");
-		exit(EXIT_FAILURE);
-		}
-		fwrite(tBegin.buf,sizeof(char),tBegin.n,fis);
-		fwrite(tFunctions.buf,sizeof(char),tFunctions.n,fis);
-		fwrite(tMain.buf,sizeof(char),tMain.n,fis);
-		fclose(fis);
-
 		return true;
 	}
-
-
 	else tkerr("syntax error.");
-
-
 	return false;
 }
 

@@ -76,7 +76,6 @@ char *copyn(char *dst,const char *begin,const char *end){
 	}
 
 
-// TODO : Trebuie sa extraga toti atomii lexicali
 void tokenize(const char *pch){ // pch = Pointer Current Character
 	const char *start;
 	Token *tk;
@@ -163,12 +162,10 @@ void tokenize(const char *pch){ // pch = Pointer Current Character
 
 			default:
 
-			// TODO: 
 				if(isalpha(*pch)||*pch=='_'){
 					for(start=pch++;isalnum(*pch)||*pch=='_';pch++){}
 					char *text=copyn(buf,start,pch);
 					// Daca este cuvant cheie dam un cod
-					// TODO: Adauga celelalte cuvinte cheie
 					if(strcmp(text,"int")==0)addTk(TYPE_INT);
 					else if(strcmp(text,"real")==0)addTk(TYPE_REAL);
 					else if(strcmp(text,"str")==0)addTk(TYPE_STR);
@@ -216,7 +213,6 @@ void tokenize(const char *pch){ // pch = Pointer Current Character
 void showTokens(){
 	for(int i=0;i<nTokens;i++){
 		Token *tk=&tokens[i];
-		// TODO: Show code Value
 		printf("%d %s",tk->line,getCodeName(tk->code));
 
 		if(strcmp(getCodeName(tk->code), "ID")==0)
